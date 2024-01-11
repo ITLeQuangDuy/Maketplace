@@ -98,13 +98,6 @@ describe("Maketplace", () => {
     const MaketplaceFac = await(await ethers.getContractFactory("Maketplace")).connect(deployer);
     maketplace = (await upgrades.deployProxy(MaketplaceFac, [])) as Maketplace;
 
-    // const PokeballFac = await (
-    //   await ethers.getContractFactory("Pokeball")
-    // ).connect(deployer);
-
-    // pokeball = (await upgrades.deployProxy(PokeballFac, [
-    //   "http://localhost:8080/tokenuri/",
-    // ])) as Pokeball;
   });
 
   it("Setup", async () => {
