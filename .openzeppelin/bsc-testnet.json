@@ -1,0 +1,210 @@
+{
+  "manifestVersion": "3.2",
+  "admin": {
+    "address": "0x14D2F86797138B7D5F118f6b2d64657EAAc4ebB6",
+    "txHash": "0x895e616f1033438d7208b79f8368e04398f7fef56d975602ce64be226d3fde14"
+  },
+  "proxies": [
+    {
+      "address": "0x7f4eBF0FC7563e77F6A845c9Af5Ff0B55B7eC6e7",
+      "txHash": "0x458ea35593c8b8a3526973b31716b4ed0f4b1f9105d6d9817f9ee551b009e864",
+      "kind": "transparent"
+    }
+  ],
+  "impls": {
+    "de224eb165fae4fb68e0388ba564e62dc9b03e8999eb184e6f7fdd9fc49f0414": {
+      "address": "0xa0b1368E7e9b071715Ee3E53f1d5BFB86CB80824",
+      "txHash": "0x7dddacc30ac44fa4859acffd36bce6e6c6bedf5225102e471cf83c9251231a07",
+      "layout": {
+        "solcVersion": "0.8.9",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:67"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\utils\\ContextUpgradeable.sol:36"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "_paused",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_bool",
+            "contract": "PausableUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\security\\PausableUpgradeable.sol:29"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "PausableUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\security\\PausableUpgradeable.sol:116"
+          },
+          {
+            "label": "_status",
+            "offset": 0,
+            "slot": "151",
+            "type": "t_uint256",
+            "contract": "ReentrancyGuardUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:38"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "152",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "ReentrancyGuardUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:80"
+          },
+          {
+            "label": "listings",
+            "offset": 0,
+            "slot": "201",
+            "type": "t_mapping(t_uint256,t_struct(Listing)1233_storage)",
+            "contract": "Maketplace",
+            "src": "contracts\\Maketplace.sol:32"
+          },
+          {
+            "label": "nextListingId",
+            "offset": 0,
+            "slot": "202",
+            "type": "t_uint256",
+            "contract": "Maketplace",
+            "src": "contracts\\Maketplace.sol:34"
+          },
+          {
+            "label": "listingFee",
+            "offset": 0,
+            "slot": "203",
+            "type": "t_uint256",
+            "contract": "Maketplace",
+            "src": "contracts\\Maketplace.sol:36"
+          },
+          {
+            "label": "buyerFee",
+            "offset": 0,
+            "slot": "204",
+            "type": "t_uint256",
+            "contract": "Maketplace",
+            "src": "contracts\\Maketplace.sol:37"
+          },
+          {
+            "label": "unListingFee",
+            "offset": 0,
+            "slot": "205",
+            "type": "t_uint256",
+            "contract": "Maketplace",
+            "src": "contracts\\Maketplace.sol:38"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_uint256,t_struct(Listing)1233_storage)": {
+            "label": "mapping(uint256 => struct Maketplace.Listing)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Listing)1233_storage": {
+            "label": "struct Maketplace.Listing",
+            "members": [
+              {
+                "label": "seller",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "paymentToken",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "nft",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "tokenId",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "amount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "price",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              }
+            ],
+            "numberOfBytes": "192"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    }
+  }
+}

@@ -129,21 +129,9 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IERC165__factory>;
     getContractFactory(
-      name: "IPokeball",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IPokeball__factory>;
-    getContractFactory(
       name: "Maketplace",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Maketplace__factory>;
-    getContractFactory(
-      name: "Pokeball",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.Pokeball__factory>;
-    getContractFactory(
-      name: "TokenExample",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.TokenExample__factory>;
     getContractFactory(
       name: "TokenERC1155",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -303,25 +291,10 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.IERC165>;
     getContractAt(
-      name: "IPokeball",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.IPokeball>;
-    getContractAt(
       name: "Maketplace",
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.Maketplace>;
-    getContractAt(
-      name: "Pokeball",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.Pokeball>;
-    getContractAt(
-      name: "TokenExample",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.TokenExample>;
     getContractAt(
       name: "TokenERC1155",
       address: string,

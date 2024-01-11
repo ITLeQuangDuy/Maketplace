@@ -9,8 +9,8 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 import "@openzeppelin/contracts-upgradeable/interfaces/IERC721Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/interfaces/IERC1155Upgradeable.sol";
-//import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgradeable.sol";
-//import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721ReceiverUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/interfaces/IERC721ReceiverUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/interfaces/IERC1155ReceiverUpgradeable.sol";
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "hardhat/console.sol";
@@ -18,10 +18,13 @@ import "hardhat/console.sol";
 contract Maketplace is
     OwnableUpgradeable,
     PausableUpgradeable,
-    ReentrancyGuardUpgradeable
+    ReentrancyGuardUpgradeable,
+    IERC721ReceiverUpgradeable,
+    IERC1155ReceiverUpgradeable
 {
     struct Listing {
         address seller;
+        address paymentToken;
         address nft;
         uint256 tokenId;
         uint256 amount;
@@ -69,6 +72,7 @@ contract Maketplace is
 
     function listing(
         address _addrNft,
+        address _paymentToken,
         uint256 _tokenId,
         uint256 _amount,
         uint256 _price
@@ -80,6 +84,7 @@ contract Maketplace is
         //console.log(2);
         listings[nextListingId] = Listing({
             seller: msg.sender,
+            paymentToken: _paymentToken,
             nft: _addrNft,
             tokenId: _tokenId,
             amount: _amount,
@@ -118,15 +123,16 @@ contract Maketplace is
     ) external payable whenNotPaused nonReentrant {
         require (msg.value == buyerFee, "Invalid buy NFT fee");
         Listing memory _listing = listings[_listingId];
+
         require(_listing.seller != address(0), "NFT not listed");
         //require(amount > 0 && amount <= _listing.amount, "Invalid amount");
         require(_amount > 0, "Amount > 0");
         require(_amount <= _listing.amount, "Invalid amount");
         
         uint256 price = _listing.price * _amount;
-        
-        transferToken(_listing.nft, address(this), msg.sender, price);
-        
+
+        transferToken(_listing.paymentToken, msg.sender, _listing.seller, price);
+
         transferNft(
             _listing.nft,
             address(this),
@@ -185,32 +191,36 @@ contract Maketplace is
     }
 
     //======================================FUNCTION RECEEIVER========================================
+    function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {
+        return interfaceId == type(IERC165Upgradeable).interfaceId;
+    }
+
     function onERC721Received(
-        address,
-        address,
-        uint256,
-        bytes calldata
-    ) external pure returns (bytes4) {
-        return this.onERC721Received.selector;
+        address operator,
+        address from,
+        uint256 tokenId,
+        bytes calldata data
+    ) external pure override returns (bytes4) {
+        return IERC721ReceiverUpgradeable.onERC721Received.selector;
     }
 
     function onERC1155Received(
-        address,
-        address,
-        uint256,
-        uint256,
-        bytes calldata
-    ) public pure returns (bytes4) {
-        return this.onERC1155Received.selector;
+        address operator,
+        address from,
+        uint256 tokenId,
+        uint256 value,
+        bytes calldata data
+    ) external pure override returns (bytes4) {
+        return IERC1155ReceiverUpgradeable.onERC1155Received.selector;
     }
 
     function onERC1155BatchReceived(
-        address,
-        address,
-        uint256[] calldata,
-        uint256[] calldata,
-        bytes calldata
-    ) external pure returns (bytes4) {
-        return this.onERC1155BatchReceived.selector;
+        address operator,
+        address from,
+        uint256[] calldata ids,
+        uint256[] calldata values,
+        bytes calldata data
+    ) external pure override returns (bytes4) {
+        return IERC1155ReceiverUpgradeable.onERC1155BatchReceived.selector;
     }
 }

@@ -27,7 +27,7 @@ interface MaketplaceInterface extends ethers.utils.Interface {
     "buyNft(uint256,uint256)": FunctionFragment;
     "buyerFee()": FunctionFragment;
     "initialize()": FunctionFragment;
-    "listing(address,uint256,uint256,uint256)": FunctionFragment;
+    "listing(address,address,uint256,uint256,uint256)": FunctionFragment;
     "listingFee()": FunctionFragment;
     "listings(uint256)": FunctionFragment;
     "nextListingId()": FunctionFragment;
@@ -39,6 +39,7 @@ interface MaketplaceInterface extends ethers.utils.Interface {
     "renounceOwnership()": FunctionFragment;
     "rescueStuck()": FunctionFragment;
     "setFee(uint256,uint256,uint256)": FunctionFragment;
+    "supportsInterface(bytes4)": FunctionFragment;
     "transferOwnership(address)": FunctionFragment;
     "unListing(uint256)": FunctionFragment;
     "unListingFee()": FunctionFragment;
@@ -63,7 +64,7 @@ interface MaketplaceInterface extends ethers.utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "listing",
-    values: [string, BigNumberish, BigNumberish, BigNumberish]
+    values: [string, string, BigNumberish, BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "listingFee",
@@ -102,6 +103,10 @@ interface MaketplaceInterface extends ethers.utils.Interface {
   encodeFunctionData(
     functionFragment: "setFee",
     values: [BigNumberish, BigNumberish, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "supportsInterface",
+    values: [BytesLike]
   ): string;
   encodeFunctionData(
     functionFragment: "transferOwnership",
@@ -157,6 +162,10 @@ interface MaketplaceInterface extends ethers.utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "setFee", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "supportsInterface",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "transferOwnership",
     data: BytesLike
@@ -274,6 +283,7 @@ export class Maketplace extends BaseContract {
 
     listing(
       _addrNft: string,
+      _paymentToken: string,
       _tokenId: BigNumberish,
       _amount: BigNumberish,
       _price: BigNumberish,
@@ -286,8 +296,9 @@ export class Maketplace extends BaseContract {
       arg0: BigNumberish,
       overrides?: CallOverrides
     ): Promise<
-      [string, string, BigNumber, BigNumber, BigNumber] & {
+      [string, string, string, BigNumber, BigNumber, BigNumber] & {
         seller: string;
+        paymentToken: string;
         nft: string;
         tokenId: BigNumber;
         amount: BigNumber;
@@ -298,28 +309,28 @@ export class Maketplace extends BaseContract {
     nextListingId(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     onERC1155BatchReceived(
-      arg0: string,
-      arg1: string,
-      arg2: BigNumberish[],
-      arg3: BigNumberish[],
-      arg4: BytesLike,
+      operator: string,
+      from: string,
+      ids: BigNumberish[],
+      values: BigNumberish[],
+      data: BytesLike,
       overrides?: CallOverrides
     ): Promise<[string]>;
 
     onERC1155Received(
-      arg0: string,
-      arg1: string,
-      arg2: BigNumberish,
-      arg3: BigNumberish,
-      arg4: BytesLike,
+      operator: string,
+      from: string,
+      tokenId: BigNumberish,
+      value: BigNumberish,
+      data: BytesLike,
       overrides?: CallOverrides
     ): Promise<[string]>;
 
     onERC721Received(
-      arg0: string,
-      arg1: string,
-      arg2: BigNumberish,
-      arg3: BytesLike,
+      operator: string,
+      from: string,
+      tokenId: BigNumberish,
+      data: BytesLike,
       overrides?: CallOverrides
     ): Promise<[string]>;
 
@@ -341,6 +352,11 @@ export class Maketplace extends BaseContract {
       _unListingFee: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
+
+    supportsInterface(
+      interfaceId: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<[boolean]>;
 
     transferOwnership(
       newOwner: string,
@@ -373,6 +389,7 @@ export class Maketplace extends BaseContract {
 
   listing(
     _addrNft: string,
+    _paymentToken: string,
     _tokenId: BigNumberish,
     _amount: BigNumberish,
     _price: BigNumberish,
@@ -385,8 +402,9 @@ export class Maketplace extends BaseContract {
     arg0: BigNumberish,
     overrides?: CallOverrides
   ): Promise<
-    [string, string, BigNumber, BigNumber, BigNumber] & {
+    [string, string, string, BigNumber, BigNumber, BigNumber] & {
       seller: string;
+      paymentToken: string;
       nft: string;
       tokenId: BigNumber;
       amount: BigNumber;
@@ -397,28 +415,28 @@ export class Maketplace extends BaseContract {
   nextListingId(overrides?: CallOverrides): Promise<BigNumber>;
 
   onERC1155BatchReceived(
-    arg0: string,
-    arg1: string,
-    arg2: BigNumberish[],
-    arg3: BigNumberish[],
-    arg4: BytesLike,
+    operator: string,
+    from: string,
+    ids: BigNumberish[],
+    values: BigNumberish[],
+    data: BytesLike,
     overrides?: CallOverrides
   ): Promise<string>;
 
   onERC1155Received(
-    arg0: string,
-    arg1: string,
-    arg2: BigNumberish,
-    arg3: BigNumberish,
-    arg4: BytesLike,
+    operator: string,
+    from: string,
+    tokenId: BigNumberish,
+    value: BigNumberish,
+    data: BytesLike,
     overrides?: CallOverrides
   ): Promise<string>;
 
   onERC721Received(
-    arg0: string,
-    arg1: string,
-    arg2: BigNumberish,
-    arg3: BytesLike,
+    operator: string,
+    from: string,
+    tokenId: BigNumberish,
+    data: BytesLike,
     overrides?: CallOverrides
   ): Promise<string>;
 
@@ -440,6 +458,11 @@ export class Maketplace extends BaseContract {
     _unListingFee: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
+
+  supportsInterface(
+    interfaceId: BytesLike,
+    overrides?: CallOverrides
+  ): Promise<boolean>;
 
   transferOwnership(
     newOwner: string,
@@ -470,6 +493,7 @@ export class Maketplace extends BaseContract {
 
     listing(
       _addrNft: string,
+      _paymentToken: string,
       _tokenId: BigNumberish,
       _amount: BigNumberish,
       _price: BigNumberish,
@@ -482,8 +506,9 @@ export class Maketplace extends BaseContract {
       arg0: BigNumberish,
       overrides?: CallOverrides
     ): Promise<
-      [string, string, BigNumber, BigNumber, BigNumber] & {
+      [string, string, string, BigNumber, BigNumber, BigNumber] & {
         seller: string;
+        paymentToken: string;
         nft: string;
         tokenId: BigNumber;
         amount: BigNumber;
@@ -494,28 +519,28 @@ export class Maketplace extends BaseContract {
     nextListingId(overrides?: CallOverrides): Promise<BigNumber>;
 
     onERC1155BatchReceived(
-      arg0: string,
-      arg1: string,
-      arg2: BigNumberish[],
-      arg3: BigNumberish[],
-      arg4: BytesLike,
+      operator: string,
+      from: string,
+      ids: BigNumberish[],
+      values: BigNumberish[],
+      data: BytesLike,
       overrides?: CallOverrides
     ): Promise<string>;
 
     onERC1155Received(
-      arg0: string,
-      arg1: string,
-      arg2: BigNumberish,
-      arg3: BigNumberish,
-      arg4: BytesLike,
+      operator: string,
+      from: string,
+      tokenId: BigNumberish,
+      value: BigNumberish,
+      data: BytesLike,
       overrides?: CallOverrides
     ): Promise<string>;
 
     onERC721Received(
-      arg0: string,
-      arg1: string,
-      arg2: BigNumberish,
-      arg3: BytesLike,
+      operator: string,
+      from: string,
+      tokenId: BigNumberish,
+      data: BytesLike,
       overrides?: CallOverrides
     ): Promise<string>;
 
@@ -533,6 +558,11 @@ export class Maketplace extends BaseContract {
       _unListingFee: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
+
+    supportsInterface(
+      interfaceId: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<boolean>;
 
     transferOwnership(
       newOwner: string,
@@ -658,6 +688,7 @@ export class Maketplace extends BaseContract {
 
     listing(
       _addrNft: string,
+      _paymentToken: string,
       _tokenId: BigNumberish,
       _amount: BigNumberish,
       _price: BigNumberish,
@@ -671,28 +702,28 @@ export class Maketplace extends BaseContract {
     nextListingId(overrides?: CallOverrides): Promise<BigNumber>;
 
     onERC1155BatchReceived(
-      arg0: string,
-      arg1: string,
-      arg2: BigNumberish[],
-      arg3: BigNumberish[],
-      arg4: BytesLike,
+      operator: string,
+      from: string,
+      ids: BigNumberish[],
+      values: BigNumberish[],
+      data: BytesLike,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     onERC1155Received(
-      arg0: string,
-      arg1: string,
-      arg2: BigNumberish,
-      arg3: BigNumberish,
-      arg4: BytesLike,
+      operator: string,
+      from: string,
+      tokenId: BigNumberish,
+      value: BigNumberish,
+      data: BytesLike,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     onERC721Received(
-      arg0: string,
-      arg1: string,
-      arg2: BigNumberish,
-      arg3: BytesLike,
+      operator: string,
+      from: string,
+      tokenId: BigNumberish,
+      data: BytesLike,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -713,6 +744,11 @@ export class Maketplace extends BaseContract {
       _buyerFee: BigNumberish,
       _unListingFee: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    supportsInterface(
+      interfaceId: BytesLike,
+      overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     transferOwnership(
@@ -751,6 +787,7 @@ export class Maketplace extends BaseContract {
 
     listing(
       _addrNft: string,
+      _paymentToken: string,
       _tokenId: BigNumberish,
       _amount: BigNumberish,
       _price: BigNumberish,
@@ -767,28 +804,28 @@ export class Maketplace extends BaseContract {
     nextListingId(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     onERC1155BatchReceived(
-      arg0: string,
-      arg1: string,
-      arg2: BigNumberish[],
-      arg3: BigNumberish[],
-      arg4: BytesLike,
+      operator: string,
+      from: string,
+      ids: BigNumberish[],
+      values: BigNumberish[],
+      data: BytesLike,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     onERC1155Received(
-      arg0: string,
-      arg1: string,
-      arg2: BigNumberish,
-      arg3: BigNumberish,
-      arg4: BytesLike,
+      operator: string,
+      from: string,
+      tokenId: BigNumberish,
+      value: BigNumberish,
+      data: BytesLike,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     onERC721Received(
-      arg0: string,
-      arg1: string,
-      arg2: BigNumberish,
-      arg3: BytesLike,
+      operator: string,
+      from: string,
+      tokenId: BigNumberish,
+      data: BytesLike,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
@@ -809,6 +846,11 @@ export class Maketplace extends BaseContract {
       _buyerFee: BigNumberish,
       _unListingFee: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    supportsInterface(
+      interfaceId: BytesLike,
+      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     transferOwnership(

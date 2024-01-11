@@ -1,7 +1,9 @@
 {
   "56": { "tokenAddress": "", "pokeballAddress": "" },
   "97": {
-    "tokenAddress": "0xb15897de8EF45f15BAb4c7C01B601a2B7cb63ECe",
-    "pokeballAddress": "0x71A16Fa58c0976D3C7dd456c9Ed12C0E891850F7"
+    "tokenERC20Address": "0x02B24684395843Cc9c8442d8dF450C1BD57aC58C",
+    "tokenTokenERC721Address": "0x3B0b1b3cf3883B58fD52684C6d47957D77747E6f",
+    "tokenTokenERC1155Address": "0x58B1dA4B098A56b8DcA395510760366b12492930",
+    "maketplaceAddress": "0x7f4eBF0FC7563e77F6A845c9Af5Ff0B55B7eC6e7"
   }
 }
