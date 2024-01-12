@@ -24,8 +24,6 @@ interface MaketplaceInterface extends ethers.utils.Interface {
   functions: {
     "ERC1155_INTERFACE_ID()": FunctionFragment;
     "ERC721_INTERFACE_ID()": FunctionFragment;
-    "buyNft(uint256,uint256)": FunctionFragment;
-    "buyerFee()": FunctionFragment;
     "initialize()": FunctionFragment;
     "listing(address,address,uint256,uint256,uint256)": FunctionFragment;
     "listingFee()": FunctionFragment;
@@ -36,9 +34,12 @@ interface MaketplaceInterface extends ethers.utils.Interface {
     "onERC721Received(address,address,uint256,bytes)": FunctionFragment;
     "owner()": FunctionFragment;
     "paused()": FunctionFragment;
+    "percentFee()": FunctionFragment;
+    "purchaseNFT(uint256)": FunctionFragment;
     "renounceOwnership()": FunctionFragment;
-    "rescueStuck()": FunctionFragment;
-    "setFee(uint256,uint256,uint256)": FunctionFragment;
+    "rescueStuck(address,uint256)": FunctionFragment;
+    "setFee(uint256,uint256)": FunctionFragment;
+    "setPercentFee(uint256)": FunctionFragment;
     "supportsInterface(bytes4)": FunctionFragment;
     "transferOwnership(address)": FunctionFragment;
     "unListing(uint256)": FunctionFragment;
@@ -53,11 +54,6 @@ interface MaketplaceInterface extends ethers.utils.Interface {
     functionFragment: "ERC721_INTERFACE_ID",
     values?: undefined
   ): string;
-  encodeFunctionData(
-    functionFragment: "buyNft",
-    values: [BigNumberish, BigNumberish]
-  ): string;
-  encodeFunctionData(functionFragment: "buyerFee", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "initialize",
     values?: undefined
@@ -93,16 +89,28 @@ interface MaketplaceInterface extends ethers.utils.Interface {
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(functionFragment: "paused", values?: undefined): string;
   encodeFunctionData(
+    functionFragment: "percentFee",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "purchaseNFT",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "renounceOwnership",
     values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "rescueStuck",
-    values?: undefined
+    values: [string, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "setFee",
-    values: [BigNumberish, BigNumberish, BigNumberish]
+    values: [BigNumberish, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setPercentFee",
+    values: [BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "supportsInterface",
@@ -129,8 +137,6 @@ interface MaketplaceInterface extends ethers.utils.Interface {
     functionFragment: "ERC721_INTERFACE_ID",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "buyNft", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "buyerFee", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "initialize", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "listing", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "listingFee", data: BytesLike): Result;
@@ -153,6 +159,11 @@ interface MaketplaceInterface extends ethers.utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "paused", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "percentFee", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "purchaseNFT",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "renounceOwnership",
     data: BytesLike
@@ -162,6 +173,10 @@ interface MaketplaceInterface extends ethers.utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "setFee", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "setPercentFee",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "supportsInterface",
     data: BytesLike
@@ -178,8 +193,8 @@ interface MaketplaceInterface extends ethers.utils.Interface {
 
   events: {
     "Initialized(uint8)": EventFragment;
-    "NFTListed(address,uint256,uint256,uint256,bool)": EventFragment;
-    "NFTSold()": EventFragment;
+    "NFTListed(address,uint256,uint256,uint256)": EventFragment;
+    "NFTSold(address,uint256)": EventFragment;
     "NFTUnlisted(address,uint256)": EventFragment;
     "OwnershipTransferred(address,address)": EventFragment;
     "Paused(address)": EventFragment;
@@ -198,16 +213,17 @@ interface MaketplaceInterface extends ethers.utils.Interface {
 export type InitializedEvent = TypedEvent<[number] & { version: number }>;
 
 export type NFTListedEvent = TypedEvent<
-  [string, BigNumber, BigNumber, BigNumber, boolean] & {
+  [string, BigNumber, BigNumber, BigNumber] & {
     seller: string;
     tokenId: BigNumber;
     amount: BigNumber;
     price: BigNumber;
-    isListing: boolean;
   }
 >;
 
-export type NFTSoldEvent = TypedEvent<[] & {}>;
+export type NFTSoldEvent = TypedEvent<
+  [string, BigNumber] & { userAddress: string; listingId: BigNumber }
+>;
 
 export type NFTUnlistedEvent = TypedEvent<
   [string, BigNumber] & { userAddress: string; listingId: BigNumber }
@@ -268,14 +284,6 @@ export class Maketplace extends BaseContract {
     ERC1155_INTERFACE_ID(overrides?: CallOverrides): Promise<[string]>;
 
     ERC721_INTERFACE_ID(overrides?: CallOverrides): Promise<[string]>;
-
-    buyNft(
-      _listingId: BigNumberish,
-      _amount: BigNumberish,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
-    buyerFee(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     initialize(
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -338,18 +346,31 @@ export class Maketplace extends BaseContract {
 
     paused(overrides?: CallOverrides): Promise<[boolean]>;
 
+    percentFee(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    purchaseNFT(
+      _listingId: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
     renounceOwnership(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
     rescueStuck(
+      token: string,
+      amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
     setFee(
       _listingFee: BigNumberish,
-      _buyerFee: BigNumberish,
       _unListingFee: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    setPercentFee(
+      _percent: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
@@ -374,14 +395,6 @@ export class Maketplace extends BaseContract {
   ERC1155_INTERFACE_ID(overrides?: CallOverrides): Promise<string>;
 
   ERC721_INTERFACE_ID(overrides?: CallOverrides): Promise<string>;
-
-  buyNft(
-    _listingId: BigNumberish,
-    _amount: BigNumberish,
-    overrides?: PayableOverrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
-  buyerFee(overrides?: CallOverrides): Promise<BigNumber>;
 
   initialize(
     overrides?: Overrides & { from?: string | Promise<string> }
@@ -444,18 +457,31 @@ export class Maketplace extends BaseContract {
 
   paused(overrides?: CallOverrides): Promise<boolean>;
 
+  percentFee(overrides?: CallOverrides): Promise<BigNumber>;
+
+  purchaseNFT(
+    _listingId: BigNumberish,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   renounceOwnership(
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
   rescueStuck(
+    token: string,
+    amount: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
   setFee(
     _listingFee: BigNumberish,
-    _buyerFee: BigNumberish,
     _unListingFee: BigNumberish,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  setPercentFee(
+    _percent: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -480,14 +506,6 @@ export class Maketplace extends BaseContract {
     ERC1155_INTERFACE_ID(overrides?: CallOverrides): Promise<string>;
 
     ERC721_INTERFACE_ID(overrides?: CallOverrides): Promise<string>;
-
-    buyNft(
-      _listingId: BigNumberish,
-      _amount: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    buyerFee(overrides?: CallOverrides): Promise<BigNumber>;
 
     initialize(overrides?: CallOverrides): Promise<void>;
 
@@ -548,14 +566,29 @@ export class Maketplace extends BaseContract {
 
     paused(overrides?: CallOverrides): Promise<boolean>;
 
+    percentFee(overrides?: CallOverrides): Promise<BigNumber>;
+
+    purchaseNFT(
+      _listingId: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     renounceOwnership(overrides?: CallOverrides): Promise<void>;
 
-    rescueStuck(overrides?: CallOverrides): Promise<void>;
+    rescueStuck(
+      token: string,
+      amount: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     setFee(
       _listingFee: BigNumberish,
-      _buyerFee: BigNumberish,
       _unListingFee: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setPercentFee(
+      _percent: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -586,20 +619,18 @@ export class Maketplace extends BaseContract {
       version?: null
     ): TypedEventFilter<[number], { version: number }>;
 
-    "NFTListed(address,uint256,uint256,uint256,bool)"(
+    "NFTListed(address,uint256,uint256,uint256)"(
       seller?: null,
       tokenId?: null,
       amount?: null,
-      price?: null,
-      isListing?: null
+      price?: null
     ): TypedEventFilter<
-      [string, BigNumber, BigNumber, BigNumber, boolean],
+      [string, BigNumber, BigNumber, BigNumber],
       {
         seller: string;
         tokenId: BigNumber;
         amount: BigNumber;
         price: BigNumber;
-        isListing: boolean;
       }
     >;
 
@@ -607,22 +638,32 @@ export class Maketplace extends BaseContract {
       seller?: null,
       tokenId?: null,
       amount?: null,
-      price?: null,
-      isListing?: null
+      price?: null
     ): TypedEventFilter<
-      [string, BigNumber, BigNumber, BigNumber, boolean],
+      [string, BigNumber, BigNumber, BigNumber],
       {
         seller: string;
         tokenId: BigNumber;
         amount: BigNumber;
         price: BigNumber;
-        isListing: boolean;
       }
     >;
 
-    "NFTSold()"(): TypedEventFilter<[], {}>;
+    "NFTSold(address,uint256)"(
+      userAddress?: null,
+      listingId?: null
+    ): TypedEventFilter<
+      [string, BigNumber],
+      { userAddress: string; listingId: BigNumber }
+    >;
 
-    NFTSold(): TypedEventFilter<[], {}>;
+    NFTSold(
+      userAddress?: null,
+      listingId?: null
+    ): TypedEventFilter<
+      [string, BigNumber],
+      { userAddress: string; listingId: BigNumber }
+    >;
 
     "NFTUnlisted(address,uint256)"(
       userAddress?: null,
@@ -674,14 +715,6 @@ export class Maketplace extends BaseContract {
 
     ERC721_INTERFACE_ID(overrides?: CallOverrides): Promise<BigNumber>;
 
-    buyNft(
-      _listingId: BigNumberish,
-      _amount: BigNumberish,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
-    buyerFee(overrides?: CallOverrides): Promise<BigNumber>;
-
     initialize(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
@@ -731,18 +764,31 @@ export class Maketplace extends BaseContract {
 
     paused(overrides?: CallOverrides): Promise<BigNumber>;
 
+    percentFee(overrides?: CallOverrides): Promise<BigNumber>;
+
+    purchaseNFT(
+      _listingId: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
     renounceOwnership(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
     rescueStuck(
+      token: string,
+      amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
     setFee(
       _listingFee: BigNumberish,
-      _buyerFee: BigNumberish,
       _unListingFee: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    setPercentFee(
+      _percent: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
@@ -772,14 +818,6 @@ export class Maketplace extends BaseContract {
     ERC721_INTERFACE_ID(
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
-
-    buyNft(
-      _listingId: BigNumberish,
-      _amount: BigNumberish,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
-    buyerFee(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     initialize(
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -833,18 +871,31 @@ export class Maketplace extends BaseContract {
 
     paused(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    percentFee(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    purchaseNFT(
+      _listingId: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
     renounceOwnership(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
     rescueStuck(
+      token: string,
+      amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
     setFee(
       _listingFee: BigNumberish,
-      _buyerFee: BigNumberish,
       _unListingFee: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setPercentFee(
+      _percent: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 

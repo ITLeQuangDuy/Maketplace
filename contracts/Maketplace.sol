@@ -36,8 +36,8 @@ contract Maketplace is
     uint256 public nextListingId;
 
     uint256 public listingFee;
-    uint256 public buyerFee;
     uint256 public unListingFee;
+    uint256 public percentFee;
 
     bytes4 public constant ERC1155_INTERFACE_ID = 0xd9b67a26;
     bytes4 public constant ERC721_INTERFACE_ID = 0x80ac58cd;
@@ -46,13 +46,12 @@ contract Maketplace is
         address seller,
         uint256 tokenId,
         uint256 amount,
-        uint256 price,
-        bool isListing
+        uint256 price
     );
 
     event NFTUnlisted(address userAddress, uint256 listingId);
 
-    event NFTSold();
+    event NFTSold(address userAddress, uint256 listingId);
 
     function initialize() public initializer {
         __Pausable_init_unchained();
@@ -60,15 +59,25 @@ contract Maketplace is
         __ReentrancyGuard_init_unchained();
     }
 
-    function setFee(uint256 _listingFee, uint256 _buyerFee, uint256 _unListingFee) external onlyOwner{
+    //========================================OWNER FUNCTION============================================
+
+    function setFee(
+        uint256 _listingFee,
+        uint256 _unListingFee
+    ) external onlyOwner {
         listingFee = _listingFee;
-        buyerFee = _buyerFee;
         unListingFee = _unListingFee;
     }
 
-    // function getFee() public view returns(uint256, uint256, uint256){
-    //     return (listingFee, unListingFee, buyerFee);
-    // }
+    function setPercentFee(uint256 _percent) external onlyOwner {
+        percentFee = _percent;
+    }
+
+    function rescueStuck(address token, uint256 amount) external onlyOwner {
+        IERC20Upgradeable(token).transfer(msg.sender, amount);
+    }
+
+    //==========================================EXTERNAL FUNCTION========================================
 
     function listing(
         address _addrNft,
@@ -80,8 +89,6 @@ contract Maketplace is
         require(msg.value == listingFee, "Invalid listing fee");
         require(_amount > 0, "Amount must be greater than 0");
 
-        transferNft( _addrNft, msg.sender, address(this), _tokenId, _amount);
-        //console.log(2);
         listings[nextListingId] = Listing({
             seller: msg.sender,
             paymentToken: _paymentToken,
@@ -91,9 +98,11 @@ contract Maketplace is
             price: _price // /1 nft
         });
 
+        transferNft(_addrNft, msg.sender, address(this), _tokenId, _amount);
+
         nextListingId++;
 
-        emit NFTListed(msg.sender, _tokenId, _amount, _price, true);
+        emit NFTListed(msg.sender, _tokenId, _amount, _price);
     }
 
     function unListing(
@@ -117,21 +126,23 @@ contract Maketplace is
         delete listings[_listingId];
     }
 
-    function buyNft(
-        uint256 _listingId,
-        uint256 _amount
-    ) external payable whenNotPaused nonReentrant {
-        require (msg.value == buyerFee, "Invalid buy NFT fee");
+    function purchaseNFT(
+        uint256 _listingId
+    ) external whenNotPaused nonReentrant {
         Listing memory _listing = listings[_listingId];
-
+        console.log(nextListingId);
         require(_listing.seller != address(0), "NFT not listed");
-        //require(amount > 0 && amount <= _listing.amount, "Invalid amount");
-        require(_amount > 0, "Amount > 0");
-        require(_amount <= _listing.amount, "Invalid amount");
-        
-        uint256 price = _listing.price * _amount;
 
-        transferToken(_listing.paymentToken, msg.sender, _listing.seller, price);
+        uint256 fee = (_listing.price * percentFee) / 100;
+        uint256 actualPrice = _listing.price - fee;
+
+        transferToken(_listing.paymentToken, msg.sender, address(this), fee);
+        transferToken(
+            _listing.paymentToken,
+            msg.sender,
+            _listing.seller,
+            actualPrice
+        );
 
         transferNft(
             _listing.nft,
@@ -141,15 +152,12 @@ contract Maketplace is
             _listing.amount
         );
 
-        // Update listing
-        _listing.amount = _listing.amount - _amount;
-        if (_listing.amount == 0) {
-            delete listings[_listingId];
-            emit NFTUnlisted(msg.sender, _listingId);
-        }
+        emit NFTSold(msg.sender, _listingId);
 
-        emit NFTSold();
+        delete listings[_listingId];
     }
+
+    //=======================================INTERNAL FUNCTION============================================
 
     function transferNft(
         address nft,
@@ -182,16 +190,18 @@ contract Maketplace is
         uint256 amount
     ) internal {
         require(amount > 0, "Amount > 0");
-        IERC20Upgradeable(addrToken).transferFrom(from, to, amount);
-    }
-
-    //function rescueStuck
-    function rescueStuck() external onlyOwner {
-
+        bool success = IERC20Upgradeable(addrToken).transferFrom(
+            from,
+            to,
+            amount
+        );
+        require(success, "Transfer failed");
     }
 
     //======================================FUNCTION RECEEIVER========================================
-    function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public pure override returns (bool) {
         return interfaceId == type(IERC165Upgradeable).interfaceId;
     }
 
