@@ -24,6 +24,7 @@ interface MaketplaceInterface extends ethers.utils.Interface {
   functions: {
     "ERC1155_INTERFACE_ID()": FunctionFragment;
     "ERC721_INTERFACE_ID()": FunctionFragment;
+    "feeRecipient()": FunctionFragment;
     "initialize()": FunctionFragment;
     "listing(address,address,uint256,uint256,uint256)": FunctionFragment;
     "listingFee()": FunctionFragment;
@@ -39,6 +40,7 @@ interface MaketplaceInterface extends ethers.utils.Interface {
     "renounceOwnership()": FunctionFragment;
     "rescueStuck(address,uint256)": FunctionFragment;
     "setFee(uint256,uint256)": FunctionFragment;
+    "setFeeRecipient(address)": FunctionFragment;
     "setPercentFee(uint256)": FunctionFragment;
     "supportsInterface(bytes4)": FunctionFragment;
     "transferOwnership(address)": FunctionFragment;
@@ -52,6 +54,10 @@ interface MaketplaceInterface extends ethers.utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "ERC721_INTERFACE_ID",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "feeRecipient",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -109,6 +115,10 @@ interface MaketplaceInterface extends ethers.utils.Interface {
     values: [BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
+    functionFragment: "setFeeRecipient",
+    values: [string]
+  ): string;
+  encodeFunctionData(
     functionFragment: "setPercentFee",
     values: [BigNumberish]
   ): string;
@@ -135,6 +145,10 @@ interface MaketplaceInterface extends ethers.utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "ERC721_INTERFACE_ID",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "feeRecipient",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "initialize", data: BytesLike): Result;
@@ -174,6 +188,10 @@ interface MaketplaceInterface extends ethers.utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "setFee", data: BytesLike): Result;
   decodeFunctionResult(
+    functionFragment: "setFeeRecipient",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "setPercentFee",
     data: BytesLike
   ): Result;
@@ -192,41 +210,42 @@ interface MaketplaceInterface extends ethers.utils.Interface {
   ): Result;
 
   events: {
+    "CancelledListing(uint256)": EventFragment;
     "Initialized(uint8)": EventFragment;
-    "NFTListed(address,uint256,uint256,uint256)": EventFragment;
     "NFTSold(address,uint256)": EventFragment;
-    "NFTUnlisted(address,uint256)": EventFragment;
+    "NewListing(address,address,uint256,uint256,uint256)": EventFragment;
     "OwnershipTransferred(address,address)": EventFragment;
     "Paused(address)": EventFragment;
     "Unpaused(address)": EventFragment;
   };
 
+  getEvent(nameOrSignatureOrTopic: "CancelledListing"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Initialized"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "NFTListed"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NFTSold"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "NFTUnlisted"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "NewListing"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "OwnershipTransferred"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Paused"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Unpaused"): EventFragment;
 }
 
+export type CancelledListingEvent = TypedEvent<
+  [BigNumber] & { listingId: BigNumber }
+>;
+
 export type InitializedEvent = TypedEvent<[number] & { version: number }>;
 
-export type NFTListedEvent = TypedEvent<
-  [string, BigNumber, BigNumber, BigNumber] & {
+export type NFTSoldEvent = TypedEvent<
+  [string, BigNumber] & { buyer: string; listingId: BigNumber }
+>;
+
+export type NewListingEvent = TypedEvent<
+  [string, string, BigNumber, BigNumber, BigNumber] & {
     seller: string;
+    paymentToken: string;
     tokenId: BigNumber;
     amount: BigNumber;
     price: BigNumber;
   }
->;
-
-export type NFTSoldEvent = TypedEvent<
-  [string, BigNumber] & { userAddress: string; listingId: BigNumber }
->;
-
-export type NFTUnlistedEvent = TypedEvent<
-  [string, BigNumber] & { userAddress: string; listingId: BigNumber }
 >;
 
 export type OwnershipTransferredEvent = TypedEvent<
@@ -284,6 +303,8 @@ export class Maketplace extends BaseContract {
     ERC1155_INTERFACE_ID(overrides?: CallOverrides): Promise<[string]>;
 
     ERC721_INTERFACE_ID(overrides?: CallOverrides): Promise<[string]>;
+
+    feeRecipient(overrides?: CallOverrides): Promise<[string]>;
 
     initialize(
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -350,7 +371,7 @@ export class Maketplace extends BaseContract {
 
     purchaseNFT(
       _listingId: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
     renounceOwnership(
@@ -366,6 +387,11 @@ export class Maketplace extends BaseContract {
     setFee(
       _listingFee: BigNumberish,
       _unListingFee: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    setFeeRecipient(
+      _feeRecipient: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
@@ -395,6 +421,8 @@ export class Maketplace extends BaseContract {
   ERC1155_INTERFACE_ID(overrides?: CallOverrides): Promise<string>;
 
   ERC721_INTERFACE_ID(overrides?: CallOverrides): Promise<string>;
+
+  feeRecipient(overrides?: CallOverrides): Promise<string>;
 
   initialize(
     overrides?: Overrides & { from?: string | Promise<string> }
@@ -461,7 +489,7 @@ export class Maketplace extends BaseContract {
 
   purchaseNFT(
     _listingId: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    overrides?: PayableOverrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
   renounceOwnership(
@@ -477,6 +505,11 @@ export class Maketplace extends BaseContract {
   setFee(
     _listingFee: BigNumberish,
     _unListingFee: BigNumberish,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  setFeeRecipient(
+    _feeRecipient: string,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -506,6 +539,8 @@ export class Maketplace extends BaseContract {
     ERC1155_INTERFACE_ID(overrides?: CallOverrides): Promise<string>;
 
     ERC721_INTERFACE_ID(overrides?: CallOverrides): Promise<string>;
+
+    feeRecipient(overrides?: CallOverrides): Promise<string>;
 
     initialize(overrides?: CallOverrides): Promise<void>;
 
@@ -587,6 +622,11 @@ export class Maketplace extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    setFeeRecipient(
+      _feeRecipient: string,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     setPercentFee(
       _percent: BigNumberish,
       overrides?: CallOverrides
@@ -611,6 +651,14 @@ export class Maketplace extends BaseContract {
   };
 
   filters: {
+    "CancelledListing(uint256)"(
+      listingId?: null
+    ): TypedEventFilter<[BigNumber], { listingId: BigNumber }>;
+
+    CancelledListing(
+      listingId?: null
+    ): TypedEventFilter<[BigNumber], { listingId: BigNumber }>;
+
     "Initialized(uint8)"(
       version?: null
     ): TypedEventFilter<[number], { version: number }>;
@@ -619,66 +667,54 @@ export class Maketplace extends BaseContract {
       version?: null
     ): TypedEventFilter<[number], { version: number }>;
 
-    "NFTListed(address,uint256,uint256,uint256)"(
-      seller?: null,
-      tokenId?: null,
-      amount?: null,
-      price?: null
-    ): TypedEventFilter<
-      [string, BigNumber, BigNumber, BigNumber],
-      {
-        seller: string;
-        tokenId: BigNumber;
-        amount: BigNumber;
-        price: BigNumber;
-      }
-    >;
-
-    NFTListed(
-      seller?: null,
-      tokenId?: null,
-      amount?: null,
-      price?: null
-    ): TypedEventFilter<
-      [string, BigNumber, BigNumber, BigNumber],
-      {
-        seller: string;
-        tokenId: BigNumber;
-        amount: BigNumber;
-        price: BigNumber;
-      }
-    >;
-
     "NFTSold(address,uint256)"(
-      userAddress?: null,
+      buyer?: null,
       listingId?: null
     ): TypedEventFilter<
       [string, BigNumber],
-      { userAddress: string; listingId: BigNumber }
+      { buyer: string; listingId: BigNumber }
     >;
 
     NFTSold(
-      userAddress?: null,
+      buyer?: null,
       listingId?: null
     ): TypedEventFilter<
       [string, BigNumber],
-      { userAddress: string; listingId: BigNumber }
+      { buyer: string; listingId: BigNumber }
     >;
 
-    "NFTUnlisted(address,uint256)"(
-      userAddress?: null,
-      listingId?: null
+    "NewListing(address,address,uint256,uint256,uint256)"(
+      seller?: null,
+      paymentToken?: null,
+      tokenId?: null,
+      amount?: null,
+      price?: null
     ): TypedEventFilter<
-      [string, BigNumber],
-      { userAddress: string; listingId: BigNumber }
+      [string, string, BigNumber, BigNumber, BigNumber],
+      {
+        seller: string;
+        paymentToken: string;
+        tokenId: BigNumber;
+        amount: BigNumber;
+        price: BigNumber;
+      }
     >;
 
-    NFTUnlisted(
-      userAddress?: null,
-      listingId?: null
+    NewListing(
+      seller?: null,
+      paymentToken?: null,
+      tokenId?: null,
+      amount?: null,
+      price?: null
     ): TypedEventFilter<
-      [string, BigNumber],
-      { userAddress: string; listingId: BigNumber }
+      [string, string, BigNumber, BigNumber, BigNumber],
+      {
+        seller: string;
+        paymentToken: string;
+        tokenId: BigNumber;
+        amount: BigNumber;
+        price: BigNumber;
+      }
     >;
 
     "OwnershipTransferred(address,address)"(
@@ -714,6 +750,8 @@ export class Maketplace extends BaseContract {
     ERC1155_INTERFACE_ID(overrides?: CallOverrides): Promise<BigNumber>;
 
     ERC721_INTERFACE_ID(overrides?: CallOverrides): Promise<BigNumber>;
+
+    feeRecipient(overrides?: CallOverrides): Promise<BigNumber>;
 
     initialize(
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -768,7 +806,7 @@ export class Maketplace extends BaseContract {
 
     purchaseNFT(
       _listingId: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
     renounceOwnership(
@@ -784,6 +822,11 @@ export class Maketplace extends BaseContract {
     setFee(
       _listingFee: BigNumberish,
       _unListingFee: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    setFeeRecipient(
+      _feeRecipient: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
@@ -818,6 +861,8 @@ export class Maketplace extends BaseContract {
     ERC721_INTERFACE_ID(
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
+
+    feeRecipient(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     initialize(
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -875,7 +920,7 @@ export class Maketplace extends BaseContract {
 
     purchaseNFT(
       _listingId: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
     renounceOwnership(
@@ -891,6 +936,11 @@ export class Maketplace extends BaseContract {
     setFee(
       _listingFee: BigNumberish,
       _unListingFee: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setFeeRecipient(
+      _feeRecipient: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 

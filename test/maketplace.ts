@@ -12,6 +12,7 @@ import {
   TokenERC20,
 } from "../typechain";
 import { createRandomTable } from "../config/wiki";
+import { connect } from "http2";
 
 const batchTxsToBlock = async (callback: any) => {
   await network.provider.send("evm_setAutomine", [false]);
@@ -211,16 +212,15 @@ describe("Maketplace", () => {
   });
 
   it("UnListing NFT Invalid unlisting fee", async () => {
-    await expect(maketplace.unListing(1)).to.revertedWith("ID not seller");
-    await expect(maketplace.unListing(0, { value: 1 })).to.revertedWith(
+    await expect(maketplace.connect(signers[1]).unListing(2)).to.revertedWith(
+      "ID not seller"
+    );
+    await expect(maketplace.connect(deployer).unListing(0)).to.revertedWith(
+      "You not seller"
+    );
+    await expect(maketplace.connect(signers[1]).unListing(0)).to.revertedWith(
       "Invalid unlisting fee"
     );
-    await expect(maketplace.unListing(0, { value: 3 })).to.revertedWith(
-      "Invalid unlisting fee"
-    );
-    await expect(
-      maketplace.connect(deployer).unListing(0, { value: 2 })
-    ).to.revertedWith("NFT not seller");
   });
 
   it("UnListing", async () => {
@@ -243,7 +243,8 @@ describe("Maketplace", () => {
     const addressMaketplace = maketplace.address;
     const tokenId = 1;
     const listedId = 2;
-
+    //set FeeRecipient
+    await maketplace.connect(deployer).setFeeRecipient(users[10]);
     //listed
     await tokenERC721.connect(signers[1]).approve(maketplace.address, 1);
     await maketplace
@@ -266,10 +267,10 @@ describe("Maketplace", () => {
       .approve(addressMaketplace, ethers.utils.parseEther("10"));
 
     const tokenErc20User1Before = await tokenERC20.balanceOf(users[1]);
-    const tokenErc20DeployerBefore = await tokenERC20.balanceOf(
-      addressDeployer
+    const tokenErc20FeeRecipientBefore = await tokenERC20.balanceOf(users[10]);
+    const tokenErc20ContractBefore = await tokenERC20.balanceOf(
+      addressMaketplace
     );
-    const tokenErc20ContractBefore = await tokenERC20.balanceOf(addressMaketplace);
     const tokenErc721DeployerBefore = await tokenERC721.balanceOf(
       addressDeployer
     );
@@ -280,8 +281,10 @@ describe("Maketplace", () => {
     await maketplace.connect(deployer).purchaseNFT(1);
 
     const tokenErc20User1After = await tokenERC20.balanceOf(users[1]);
-    const tokenErc20DeployerAfter = await tokenERC20.balanceOf(addressDeployer);
-    const tokenErc20ContractAfter = await tokenERC20.balanceOf(addressMaketplace);
+    const tokenErc20FeeRecipientAfter = await tokenERC20.balanceOf(users[10]);
+    const tokenErc20ContractAfter = await tokenERC20.balanceOf(
+      addressMaketplace
+    );
     const tokenErc721DeployerAfter = await tokenERC721.balanceOf(
       addressDeployer
     );
@@ -298,7 +301,9 @@ describe("Maketplace", () => {
     expect(tokenErc721DeployerAfter).to.equal(
       tokenErc721ContractBefore.sub(tokenErc721ContractAfter)
     );
-    expect(tokenErc20ContractAfter.sub(tokenErc20ContractBefore)).to.equal(ethers.utils.parseEther("0.1"));
+    expect(
+      tokenErc20FeeRecipientAfter.sub(tokenErc20FeeRecipientBefore)
+    ).to.equal(ethers.utils.parseEther("0.1"));
   });
 
   it("BuyNFT 1155", async () => {
@@ -328,11 +333,10 @@ describe("Maketplace", () => {
     const tokenErc20DeployerBefore = await tokenERC20.balanceOf(
       addressDeployer
     );
-    const tokenErc20ContractBefore = await tokenERC20.balanceOf(addressMaketplace);
-    const tokenErc1155DeployerBefore = await tokenERC1155.balanceOf(
-      addressDeployer,
-      2
+    const tokenErc20ContractBefore = await tokenERC20.balanceOf(
+      addressMaketplace
     );
+    const tokenErc20FeeRecipientBefore = await tokenERC20.balanceOf(users[10]);
     const tokenErc1155ContractBefore = await tokenERC1155.balanceOf(
       addressMaketplace,
       2
@@ -341,8 +345,7 @@ describe("Maketplace", () => {
     await maketplace.connect(deployer).purchaseNFT(2);
 
     const tokenErc20UserAfter = await tokenERC20.balanceOf(users[2]);
-    const tokenErc20DeployerAfter = await tokenERC20.balanceOf(addressDeployer);
-    const tokenErc20ContractAfter = await tokenERC20.balanceOf(addressMaketplace);
+    const tokenErc20FeeRecipientAfter = await tokenERC20.balanceOf(users[10]);
     const tokenErc1155DeployerAfter = await tokenERC1155.balanceOf(
       addressDeployer,
       2
@@ -359,28 +362,103 @@ describe("Maketplace", () => {
     expect(tokenErc1155DeployerAfter).to.equal(
       tokenErc1155ContractBefore.sub(tokenErc1155ContractAfter)
     );
-    expect(tokenErc20ContractAfter.sub(tokenErc20ContractBefore)).to.equal(ethers.utils.parseEther("0.4"));
+    expect(
+      tokenErc20FeeRecipientAfter.sub(tokenErc20FeeRecipientBefore)
+    ).to.equal(ethers.utils.parseEther("0.4"));
   });
 
   it("User sell User buy", async () => {
     const addressDeployer = await deployer.getAddress();
     //console.log(users[3], await tokenERC721.ownerOf(3));
-    await tokenERC20.connect(deployer).mint(users[3], ethers.utils.parseEther("2"));
-    await tokenERC20.connect(signers[3]).approve(maketplace.address, ethers.utils.parseEther("2"));
+    await tokenERC20
+      .connect(deployer)
+      .mint(users[3], ethers.utils.parseEther("2"));
+    await tokenERC20
+      .connect(signers[3])
+      .approve(maketplace.address, ethers.utils.parseEther("2"));
     await tokenERC721.connect(signers[3]).approve(maketplace.address, 3);
-    console.log(await tokenERC721.connect(signers[3]).getApproved(3), maketplace.address);
-    await maketplace.connect(signers[3]).listing(tokenERC721.address, tokenERC20.address, 3, 1, ethers.utils.parseEther("2"), {value: 1});
-    
-    const tokenErc20UserBefore = await tokenERC20.balanceOf(users[3]);
-    const tokenErc20ContractBefore = await tokenERC20.balanceOf(maketplace.address);
+    //console.log(await tokenERC721.connect(signers[3]).getApproved(3), maketplace.address);
+    await maketplace
+      .connect(signers[3])
+      .listing(
+        tokenERC721.address,
+        tokenERC20.address,
+        3,
+        1,
+        ethers.utils.parseEther("2"),
+        { value: 1 }
+      );
 
-    await maketplace.connect(signers[3]).purchaseNFT(3);
+    await expect(maketplace.connect(signers[3]).purchaseNFT(3)).to.revertedWith(
+      "You are seller"
+    );
+  });
 
-    const tokenErc20UserAfter = await tokenERC20.balanceOf(users[3]);
-    const tokenErc20ContractAfter = await tokenERC20.balanceOf(maketplace.address);
+  it("Test Not enough Ether sent", async () => {
+    await tokenERC721.connect(signers[4]).approve(maketplace.address, 4);
+    const buyerBalancBefore = await ethers.provider.getBalance(
+      maketplace.address
+    );
 
-    console.log(await tokenERC721.connect(signers[3]).getApproved(3))
-    expect(tokenErc20ContractAfter.sub(tokenErc20ContractBefore)).to.equal(ethers.utils.parseEther("0.2"));
-    expect(tokenErc20UserBefore.sub(tokenErc20UserAfter)).to.equal(ethers.utils.parseEther("0.2"));
+    await maketplace
+      .connect(signers[4])
+      .listing(
+        tokenERC721.address,
+        ethers.constants.AddressZero,
+        4,
+        1,
+        ethers.utils.parseEther("2"),
+        { value: 1 }
+      );
+    const buyerBalanceAfter = await ethers.provider.getBalance(
+      maketplace.address
+    );
+
+    await expect(maketplace.connect(deployer).purchaseNFT(4)).to.revertedWith(
+      "Not enough Ether sent"
+    );
+  });
+
+  it("Buy with BNB Not enough Ether sent", async () => {
+    //price idlisted = 2 BNB
+    await expect(maketplace.connect(deployer).purchaseNFT(4)).to.revertedWith(
+      "Not enough Ether sent"
+    );
+    await expect(
+      maketplace.connect(deployer).purchaseNFT(4, { value: 1 })
+    ).to.revertedWith("Not enough Ether sent");
+  });
+
+  it("Buy with BNB", async () => {
+    const addressDeployer = await deployer.getAddress();
+    const feeRecipientBalanceBefore = await ethers.provider.getBalance(
+      users[10]
+    );
+    const sellerBalancBefore = await ethers.provider.getBalance(users[4]);
+    const balanceTokenErc721DeployerBefore = await tokenERC721.balanceOf(
+      addressDeployer
+    );
+
+    await maketplace
+      .connect(deployer)
+      .purchaseNFT(4, { value: parseEther("2") });
+
+    const feeRecipientBalanceAfter = await ethers.provider.getBalance(
+      users[10]
+    );
+    const sellerBalancAfter = await ethers.provider.getBalance(users[4]);
+    const balanceTokenErc721DeployerAfter = await tokenERC721.balanceOf(
+      addressDeployer
+    );
+
+    expect(sellerBalancAfter.sub(sellerBalancBefore)).to.equal(
+      ethers.utils.parseEther("1.8")
+    );
+    expect(feeRecipientBalanceAfter.sub(feeRecipientBalanceBefore)).to.equal(
+      ethers.utils.parseEther("0.2")
+    );
+    expect(
+      balanceTokenErc721DeployerAfter.sub(balanceTokenErc721DeployerBefore)
+    ).to.equal(1);
   });
 });
